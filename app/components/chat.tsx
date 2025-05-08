@@ -55,15 +55,18 @@ type ChatProps = {
   functionCallHandler?: (
     toolCall: RequiredActionFunctionToolCall
   ) => Promise<string>;
+  initialPrompt?: string;
 };
 
 const Chat = ({
-  functionCallHandler = () => Promise.resolve(""), // default to return empty string
+  functionCallHandler = () => Promise.resolve(""),
+  initialPrompt, // default to return empty string
 }: ChatProps) => {
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [inputDisabled, setInputDisabled] = useState(false);
   const [threadId, setThreadId] = useState("");
+  const sendButtonRef = useRef<HTMLButtonElement>(null);
 
   // automatically scroll to bottom of chat
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -73,6 +76,21 @@ const Chat = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (
+      threadId &&
+      initialPrompt &&
+      !hasAutoSubmitted &&
+      sendButtonRef.current &&
+      !inputDisabled
+    ) {
+      sendButtonRef.current.click();
+      setHasAutoSubmitted(true);
+    }
+  }, [threadId, initialPrompt, inputDisabled]);
 
   // create a new threadID when chat component created
   useEffect(() => {
@@ -84,6 +102,11 @@ const Chat = ({
       setThreadId(data.threadId);
     };
     createThread();
+
+    // Preload initial prompt
+    if (initialPrompt) {
+      setUserInput(initialPrompt);
+    }
   }, []);
 
   const sendMessage = async (text) => {
@@ -142,7 +165,7 @@ const Chat = ({
   const handleTextDelta = (delta) => {
     if (delta.value != null) {
       appendToLastMessage(delta.value);
-    };
+    }
     if (delta.annotations != null) {
       annotateLastMessage(delta.annotations);
     }
@@ -151,7 +174,7 @@ const Chat = ({
   // imageFileDone - show image in chat
   const handleImageFileDone = (image) => {
     appendToLastMessage(`\n![${image.file_id}](/api/files/${image.file_id})\n`);
-  }
+  };
 
   // toolCallCreated - log new tool call
   const toolCallCreated = (toolCall) => {
@@ -236,17 +259,16 @@ const Chat = ({
         ...lastMessage,
       };
       annotations.forEach((annotation) => {
-        if (annotation.type === 'file_path') {
+        if (annotation.type === "file_path") {
           updatedLastMessage.text = updatedLastMessage.text.replaceAll(
             annotation.text,
             `/api/files/${annotation.file_path.file_id}`
           );
         }
-      })
+      });
       return [...prevMessages.slice(0, -1), updatedLastMessage];
     });
-    
-  }
+  };
 
   return (
     <div className={styles.chatContainer}>
@@ -268,6 +290,7 @@ const Chat = ({
           placeholder="Enter your question"
         />
         <button
+          ref={sendButtonRef}
           type="submit"
           className={styles.button}
           disabled={inputDisabled}

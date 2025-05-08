@@ -1,28 +1,22 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./page.module.css";
+import GardenQuiz from "./components/garden-quiz";
+import Chat from "./components/chat";
 
 const Home = () => {
-  const categories = {
-    "Basic chat": "basic-chat",
-    "Function calling": "function-calling",
-    "File search": "file-search",
-    All: "all",
-  };
+  const [quizResults, setQuizResults] = useState<string | null>(null);
 
   return (
     <main className={styles.main}>
-      <div className={styles.title}>
-        Explore sample apps built with Assistants API
-      </div>
-      <div className={styles.container}>
-        {Object.entries(categories).map(([name, url]) => (
-          <a key={name} className={styles.category} href={`/examples/${url}`}>
-            {name}
-          </a>
-        ))}
-      </div>
+      <div className={styles.title}>Let's build your ideal garden!</div>
+
+      {!quizResults ? (
+        <GardenQuiz setQuizResults={setQuizResults} />
+      ) : (
+        <Chat initialPrompt={quizResults} />
+      )}
     </main>
   );
 };
